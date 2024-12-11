@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<head>
+  <title>Canvas Test</title>
+  <style>
+    body,
+    html {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="Canvas" style="height: 100%; width: 100%; margin: 0; padding: 0">
+    Not Supported!</canvas
+  >
+  <script>
+    class obj {
+      ctx;
+      inited = false;
+      finished = false;
+      frame = 0;
+      init_act;
+      next_act;
+      constructor(ctx, init, next) {
+        this.ctx = ctx;
+        this.init_act = init;
+        this.next_act = next;
+      }
+      next() {
+        if (this.finished) {
+          return;
+        } else {
+          if (!this.inited) {
+            this.init_act();
+            this.inited = true;
+          }
+          this.frame++;
+          this.next_act();
+        }
+      }
+    }
+    let can = document.getElementById("Canvas");
+    let ctx = can.getContext("2d");
+    setInterval(frame, 16);
+    let frame_counter = 0;
+    let objects = new Array();
+    let second_start = new Date();
+    let sum_delay = 0;
+    function frame() {
+      can.width = document.body.clientWidth;
+      can.height = document.body.clientHeight;
+      ctx.fillStyle = "rgb(0,0,0)";
+      ctx.clearRect(0, 0, can.width, can.height);
+      ctx.fillRect(0, 0, can.width, can.height);
+      ctx.fillStyle = "rgb(255,255,255)";
+      ctx.font = "16px sans-serif";
+      if (frame_counter % 16 == 0) {
+        let end = new Date();
+        sum_delay = end.getTime() - second_start.getTime() - 16 * 16;
+        sum_delay = Math.max(sum_delay, 0);
+        second_start = new Date();
+      }
+      ctx.fillText("Frame: " + (frame_counter++).toString(), 0, 16);
+      ctx.fillText(
+        "FPS: " + ((16 / (sum_delay + 16 * 16)) * 1000).toString(),
+        0,
+        32
+      );
+      ctx.fillText("Sum_Delay: " + sum_delay.toString() + "ms", 0, 48);
+      ctx.fillText("Avg_Delay: " + (sum_delay / 16).toString() + "ms", 0, 64);
+      ctx.fillText("Objects: " + objects.length.toString(), 0, 80);
+      ctx.fill();
+      for (i in objects) {
+        objects[i].next();
+      }
+      while (objects.length > 0 && objects[0].finished) {
+        objects.shift();
+      }
+    }
+    can.onclick = (event) => {
+      for (let i = 0; i < 20; i++) {
+        objects.push(
+          new obj(
+            ctx,
+            function () {
+              this.frame = -1 * i;
+              this.h = can.height - 3;
+              this.x = event.clientX;
+              this.tar_h = event.clientY;
+              this.g = 0.05;
+              this.v0 = Math.sqrt((this.h - this.tar_h) * 2 * this.g);
+              this.num = i;
+            },
+            function () {
+              ctx.fillStyle =
+                "rgba(255,255,255," +
+                (1 - i * 0.05) * (1 - i * 0.05).toString() +
+                ")";
+              ctx.beginPath();
+              let x_offset = Math.sin(this.frame / 5) * 2;
+              let hi =
+                this.h +
+                (this.g * this.frame * this.frame) / 2 -
+                this.v0 * this.frame;
+              ctx.arc(this.x + x_offset, hi, 3, 0, 2 * Math.PI);
+              ctx.fill();
+              let parent_x = this.x;
+              if (
+                this.num <= (this.v0 - this.g * this.frame) * 0.4 &&
+                this.frame % 2 == 0
+              )
+                objects.push(
+                  new obj(
+                    ctx,
+                    function () {
+                      this.x = parent_x + x_offset + Math.random() * 20 - 10;
+                      this.y = hi + Math.random() * 20;
+                    },
+                    function () {
+                      if (this.frame > 48) {
+                        this.finished = true;
+                      } else {
+                        let opy = Math.max(this.frame, 32);
+                        opy = 1 - (((opy - 32) / 16) * (opy - 32)) / 16;
+                        opy = opy * 0.8;
+                        ctx.fillStyle =
+                          "rgba(255,255,255," + opy.toString() + ")";
+                        ctx.fillRect(this.x, this.y, 1, 1);
+                      }
+                    }
+                  )
+                );
+              if (Math.abs(hi - this.tar_h) < 1) this.finished = true;
+            }
+          )
+        );
+      }
+    };
+  </script>
+</body>
