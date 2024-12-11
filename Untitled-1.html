@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <head>
   <title>Canvas Test</title>
   <style>
@@ -14,8 +15,7 @@
 
 <body>
   <canvas id="Canvas" style="height: 100%; width: 100%; margin: 0; padding: 0">
-    Not Supported!</canvas
-  >
+    Not Supported!</canvas>
   <script>
     class obj {
       ctx;
@@ -100,7 +100,7 @@
                 (1 - i * 0.05) * (1 - i * 0.05).toString() +
                 ")";
               ctx.beginPath();
-              let x_offset = Math.sin(this.frame / 5) * 2;
+              let x_offset = Math.sin(this.frame / 2) * 2;
               let hi =
                 this.h +
                 (this.g * this.frame * this.frame) / 2 -
@@ -133,11 +133,46 @@
                     }
                   )
                 );
-              if (Math.abs(hi - this.tar_h) < 1) this.finished = true;
+              if (Math.abs(hi - this.tar_h) < 1) {
+                if ((this.num == 0) && (this.finished == false)) {
+                  boom(this.x, this.tar_h);
+                }
+                this.finished = true;
+              }
             }
           )
         );
       }
     };
+    function boom(x, y) {
+      for (let i = 0; i < 20; i++) {
+        for (let j = 0; j < 20; j++) {
+          objects.push(new obj(ctx, function () {
+            this.num = j;
+            this.v0 = 4.5;
+            this.rad = 0.1 * Math.PI * i;
+            this.x0 = x;
+            this.y0 = y;
+            this.g = 0.04;
+            this.frame = -1 * j;
+          }, function () {
+            if ((!this.finished) && this.frame >= 0) {
+              let x = this.v0 * Math.cos(this.rad) * this.frame / 1.5 + this.x0;
+              let y = this.v0 * Math.sin(this.rad) * this.frame / 1.5 + this.g * this.frame / 1.5 * this.frame / 3 + this.y0;
+              if (y > can.height || x < 0 || x > can.width || ((this.frame + this.num - 48) > (20 - this.num))) {
+                this.finished = true;
+              }
+              let opy = (1 - j / 20) * (1 - j / 20);
+              opy = opy * ((64 - Math.max(this.frame + this.num, 48)) / 16);
+              ctx.fillStyle = "rgba(255,255,255," + opy.toString() + ")";
+              ctx.beginPath();
+              ctx.arc(x, y, 3, 0, 2 * Math.PI);
+              ctx.fill();
+            }
+          }));
+        }
+
+      }
+    }
   </script>
 </body>
