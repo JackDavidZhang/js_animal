@@ -15,7 +15,8 @@
 
 <body>
   <canvas id="Canvas" style="height: 100%; width: 100%; margin: 0; padding: 0">
-    Not Supported!</canvas>
+    Not Supported!</canvas
+  >
   <script>
     class obj {
       ctx;
@@ -63,6 +64,7 @@
         sum_delay = Math.max(sum_delay, 0);
         second_start = new Date();
       }
+      if (sum_delay > 16) ctx.fillStyle = "rgb(255,0,0)";
       ctx.fillText("Frame: " + (frame_counter++).toString(), 0, 16);
       ctx.fillText(
         "FPS: " + ((16 / (sum_delay + 16 * 16)) * 1000).toString(),
@@ -80,11 +82,22 @@
         objects.shift();
       }
     }
+    let colors = new Array();
+    colors.push([0, 255, 255]);
+    colors.push([127, 255, 212]);
+    colors.push([127, 255, 0]);
+    colors.push([173, 255, 47]);
+    colors.push([244, 164, 96]);
+    colors.push([255, 255, 0]);
+    colors.push([255, 69, 0]);
+    colors.push([240, 128, 128]);
     can.onclick = (event) => {
+      let color = Math.ceil(Math.random() * colors.length - 1);
+      color = colors[color];
       for (let i = 0; i < 20; i++) {
         objects.push(
           new obj(
-            ctx,
+            can.getContext("2d"),
             function () {
               this.frame = -1 * i;
               this.h = can.height - 3;
@@ -95,18 +108,24 @@
               this.num = i;
             },
             function () {
-              ctx.fillStyle =
-                "rgba(255,255,255," +
+              this.ctx.fillStyle =
+                "rgba(" +
+                (color[0] + (1 - this.num / 20) * (255 - color[0])).toString() +
+                "," +
+                (color[1] + (1 - this.num / 20) * (255 - color[1])).toString() +
+                "," +
+                (color[2] + (1 - this.num / 20) * (255 - color[1])).toString() +
+                "," +
                 (1 - i * 0.05) * (1 - i * 0.05).toString() +
                 ")";
-              ctx.beginPath();
+              this.ctx.beginPath();
               let x_offset = Math.sin(this.frame / 2) * 2;
               let hi =
                 this.h +
                 (this.g * this.frame * this.frame) / 2 -
                 this.v0 * this.frame;
-              ctx.arc(this.x + x_offset, hi, 3, 0, 2 * Math.PI);
-              ctx.fill();
+              this.ctx.arc(this.x + x_offset, hi, 3, 0, 2 * Math.PI);
+              this.ctx.fill();
               let parent_x = this.x;
               if (
                 this.num <= (this.v0 - this.g * this.frame) * 0.4 &&
@@ -114,28 +133,42 @@
               )
                 objects.push(
                   new obj(
-                    ctx,
+                    this.ctx,
                     function () {
                       this.x = parent_x + x_offset + Math.random() * 20 - 10;
                       this.y = hi + Math.random() * 20;
+                      this.dead = 16 + Math.random() * 64 - 32;
                     },
                     function () {
-                      if (this.frame > 48) {
+                      if (this.frame > this.dead) {
                         this.finished = true;
                       } else {
                         let opy = Math.max(this.frame, 32);
                         opy = 1 - (((opy - 32) / 16) * (opy - 32)) / 16;
                         opy = opy * 0.8;
-                        ctx.fillStyle =
-                          "rgba(255,255,255," + opy.toString() + ")";
-                        ctx.fillRect(this.x, this.y, 1, 1);
+                        this.ctx.fillStyle =
+                          "rgba(" +
+                          color[0].toString() +
+                          "," +
+                          color[1].toString() +
+                          "," +
+                          color[2].toString() +
+                          "," +
+                          opy.toString() +
+                          ")";
+                        this.ctx.fillRect(
+                          this.x,
+                          this.y + this.frame / 2,
+                          1,
+                          1
+                        );
                       }
                     }
                   )
                 );
               if (Math.abs(hi - this.tar_h) < 1) {
-                if ((this.num == 0) && (this.finished == false)) {
-                  boom(this.x, this.tar_h);
+                if (this.num == 0 && this.finished == false) {
+                  boom(this.x, this.tar_h, color[0], color[1], color[2]);
                 }
                 this.finished = true;
               }
@@ -144,34 +177,146 @@
         );
       }
     };
-    function boom(x, y) {
-      for (let i = 0; i < 20; i++) {
+    function boom(x, y, r, g, b) {
+      for (let i = 0; i < 50; i++) {
+        let v0 = 2 - 2 * Math.floor(i / 25) + Math.random() * 2 - 1;
         for (let j = 0; j < 20; j++) {
-          objects.push(new obj(ctx, function () {
-            this.num = j;
-            this.v0 = 4.5;
-            this.rad = 0.1 * Math.PI * i;
-            this.x0 = x;
-            this.y0 = y;
-            this.g = 0.04;
-            this.frame = -1 * j;
-          }, function () {
-            if ((!this.finished) && this.frame >= 0) {
-              let x = this.v0 * Math.cos(this.rad) * this.frame / 1.5 + this.x0;
-              let y = this.v0 * Math.sin(this.rad) * this.frame / 1.5 + this.g * this.frame / 1.5 * this.frame / 3 + this.y0;
-              if (y > can.height || x < 0 || x > can.width || ((this.frame + this.num - 48) > (20 - this.num))) {
-                this.finished = true;
+          objects.push(
+            new obj(
+              can.getContext("2d"),
+              function () {
+                this.num = j;
+                this.v0 = v0;
+                this.rad = 0.067 * Math.PI * i;
+                this.x0 = x;
+                this.y0 = y;
+                this.g = 0.02;
+                this.frame = -1 * j;
+              },
+              function () {
+                if (!this.finished && this.frame >= 0 && this.frame <= 84) {
+                  this.x =
+                    (this.v0 * Math.cos(this.rad) * this.frame) / 1 + this.x0;
+                  this.y =
+                    (this.v0 * Math.sin(this.rad) * this.frame) / 1 +
+                    (((this.g * this.frame) / 1) * this.frame) / 2 +
+                    this.y0;
+                  if (this.frame + this.num - 64 > 20 - this.num) {
+                    if (this.num != 0) {
+                      this.finished = true;
+                    }
+                  }
+                  let opy = (1 - j / 20) * (1 - j / 20);
+                  opy = opy * ((80 - Math.max(this.frame + this.num, 64)) / 16);
+                  this.ctx.fillStyle =
+                    "rgba( " +
+                    r.toString() +
+                    "," +
+                    g.toString() +
+                    "," +
+                    b.toString() +
+                    "," +
+                    opy.toString() +
+                    ")";
+                  this.ctx.beginPath();
+                  this.ctx.arc(this.x, this.y, 3, 0, 2 * Math.PI);
+                  this.ctx.fill();
+                  let x = this.x;
+                  let y = this.y;
+                  if (this.num == 0 && this.frame % 3 == 0)
+                    objects.push(
+                      new obj(
+                        this.ctx,
+                        function () {
+                          this.x = x + Math.random() * 10 - 5;
+                          this.y = y + Math.random() * 10 - 5;
+                          this.dead = 64 + Math.random() * 64 - 24;
+                        },
+                        function () {
+                          if (this.frame > this.dead) {
+                            this.finished = true;
+                          } else {
+                            let opy = Math.max(this.frame, 48);
+                            opy = 1 - (((opy - 48) / 16) * (opy - 48)) / 16;
+                            opy = opy * 0.8;
+                            this.ctx.fillStyle =
+                              "rgba(" +
+                              r.toString() +
+                              "," +
+                              g.toString() +
+                              "," +
+                              b.toString() +
+                              "," +
+                              opy.toString() +
+                              ")";
+                            this.ctx.fillRect(
+                              this.x,
+                              this.y + this.frame / 2,
+                              1,
+                              1
+                            );
+                          }
+                        }
+                      )
+                    );
+                }
+                if (this.frame == 80 && this.num == 0) {
+                  this.finished = true;
+                  boom2(this.x, this.y, r, g, b);
+                }
               }
-              let opy = (1 - j / 20) * (1 - j / 20);
-              opy = opy * ((64 - Math.max(this.frame + this.num, 48)) / 16);
-              ctx.fillStyle = "rgba(255,255,255," + opy.toString() + ")";
-              ctx.beginPath();
-              ctx.arc(x, y, 3, 0, 2 * Math.PI);
-              ctx.fill();
-            }
-          }));
+            )
+          );
         }
-
+      }
+    }
+    function boom2(x, y, r, g, b) {
+      for (let i = 0; i < 5; i++) {
+        let v0 = 1 + Math.random() - 0.5;
+        for (let j = 0; j < 3; j++) {
+          objects.push(
+            new obj(
+              can.getContext("2d"),
+              function () {
+                this.num = j;
+                this.v0 = v0;
+                this.rad = 0.4 * Math.PI * i;
+                this.x0 = x;
+                this.y0 = y;
+                this.g = 0.06;
+                this.frame = -1 * j;
+              },
+              function () {
+                if (!this.finished && this.frame >= 0) {
+                  this.x =
+                    (this.v0 * Math.cos(this.rad) * this.frame) / 2 + this.x0;
+                  this.y =
+                    (this.v0 * Math.sin(this.rad) * this.frame) / 2 +
+                    (((this.g * this.frame) / 2) * this.frame) / 4 +
+                    this.y0;
+                  if (this.frame + this.num - 64 > 3 - this.num) {
+                    this.finished = true;
+                  }
+                  let opy = (1 - j / 5) * (1 - j / 5);
+                  opy = opy * ((68 - Math.max(this.frame + this.num, 52)) / 16);
+                  this.ctx.fillStyle =
+                    "rgba(" +
+                    r.toString() +
+                    "," +
+                    g.toString() +
+                    "," +
+                    b.toString() +
+                    "," +
+                    opy.toString() +
+                    ")";
+                  this.ctx.beginPath();
+                  this.ctx.arc(this.x, this.y, 1, 0, 2 * Math.PI);
+                  this.ctx.fill();
+                }
+              }
+            )
+          );
+        }
       }
     }
   </script>
