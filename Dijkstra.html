@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Graph Animal</title>
+</head>
+<body>
+<canvas
+        id="Canvas"
+        style="height: 800px; width: 100%; margin: 0; padding: 0"
+>
+    Not Supported!
+</canvas
+>
+<button onclick="start()">开始</button>
+<button onclick="next()">下一步</button>
+<script>
+    const nodes = [{name: "A", positions: {x: 100, y: 250}}, {name: "B", positions: {x: 250, y: 150}}, {
+        name: "C",
+        positions: {x: 250, y: 350}
+    }, {name: "D", positions: {x: 400, y: 150}}, {name: "E", positions: {x: 400, y: 350}}];
+    const edges = [{from: 0, to: 1, value: 2}, {from: 1, to: 2, value: 2},{from:0,to:2,value:5},{from:1,to:3,value:6},{from:2,to:4,value:1},{from:3,to:4,value:4},{from:3,to:2,value:2}];
+
+    class obj {
+        ctx;
+        inited = false;
+        finished = false;
+        frame = 0;
+        init_act;
+        next_act;
+
+        constructor(ctx, init, next) {
+            this.ctx = ctx;
+            this.init_act = init;
+            this.next_act = next;
+        }
+
+        next() {
+            if (this.finished) {
+                return;
+            } else {
+                if (!this.inited) {
+                    this.init_act();
+                    this.inited = true;
+                }
+                this.frame++;
+                this.next_act();
+            }
+        }
+    }
+
+    let can = document.getElementById("Canvas");
+    let ctx = can.getContext("2d");
+    setInterval(frame, 16);
+    let frame_counter = 0;
+    let objects = new Array();
+    let second_start = new Date();
+    let sum_delay = 0;
+
+    function frame() {
+        can.width = document.body.clientWidth;
+        can.height = 800;
+        ctx.fillStyle = "rgb(255,255,255)";
+        ctx.clearRect(0, 0, can.width, can.height);
+        ctx.fillRect(0, 0, can.width, can.height);
+        ctx.fillStyle = "rgb(0,0,0)";
+        ctx.font = "16px console sans-serif";
+        if (frame_counter % 16 == 0) {
+            let end = new Date();
+            sum_delay = end.getTime() - second_start.getTime() - 16 * 16;
+            sum_delay = Math.max(sum_delay, 0);
+            second_start = new Date();
+        }
+        if (sum_delay > 16) ctx.fillStyle = "rgb(255,0,0)";
+        ctx.fillText("Frame: " + (frame_counter++).toString(), 0, 16);
+        ctx.fillText(
+            "FPS: " + ((16 / (sum_delay + 16 * 16)) * 1000).toString(),
+            0,
+            32
+        );
+        ctx.fillText("Sum_Delay: " + sum_delay.toString() + "ms", 0, 48);
+        ctx.fillText("Avg_Delay: " + (sum_delay / 16).toString() + "ms", 0, 64);
+        ctx.fillText("Objects: " + objects.length.toString(), 0, 80);
+        ctx.fill();
+        for (i in objects) {
+            objects[i].next();
+        }
+        while (objects.length > 0 && objects[0].finished) {
+            objects.shift();
+        }
+    }
+
+    for (let edge in edges) {
+        objects.push(
+            new obj(
+                can.getContext("2d"),
+                function () {
+                    this.x1 = nodes[edges[edge].from].positions.x;
+                    this.y1 = nodes[edges[edge].from].positions.y;
+                    this.x2 = nodes[edges[edge].to].positions.x;
+                    this.y2 = nodes[edges[edge].to].positions.y;
+                    this.value = edges[edge].value;
+                    this.length = Math.sqrt((this.x1 - this.x2)*(this.x1 - this.x2) + (this.y1 - this.y2) *(this.y1-this.y2));
+                    this.id = edge;
+                },
+                function () {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.x1, this.y1);
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeStyle = "rgb(63,63,63)";
+                    if(edges[this.id].vis){
+                        this.ctx.strokeStyle = "rgb(233,0,0)";
+                    }
+                    this.ctx.lineTo(this.x2, this.y2);
+                    const begin_x = (this.x2 - this.x1) * (this.length - 20) / this.length + this.x1;
+                    const begin_y = (this.y2 - this.y1) * (this.length - 20) / this.length + this.y1;
+                    const end_x = (this.x2 - this.x1) * (this.length - 30) / this.length + this.x1;
+                    const end_y = (this.y2 - this.y1) * (this.length - 30) / this.length + this.y1;
+                    const delta_x = (this.y2 - this.y1) / this.length * 5;
+                    const delta_y = (this.x2 - this.x1) / this.length * 5;
+                    this.ctx.moveTo(begin_x, begin_y);
+                    this.ctx.lineTo(end_x + delta_x, end_y - delta_y);
+                    this.ctx.moveTo(begin_x, begin_y);
+                    this.ctx.lineTo(end_x - delta_x, end_y + delta_y);
+                    this.ctx.stroke();
+                    this.ctx.fillStyle = "rgb(0,0,0)";
+                    this.ctx.fillText(this.value.toString(), (this.x1 + this.x2) / 2, (this.y1 + this.y2) / 2);
+                    this.ctx.closePath();
+                }
+            )
+        );
+    }
+    for (let node in nodes) {
+        objects.push(
+            new obj(
+                can.getContext("2d"),
+                function () {
+                    this.x = nodes[node].positions.x;
+                    this.y = nodes[node].positions.y;
+                    this.name = nodes[node].name;
+                    this.id = node;
+                },
+                function () {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.x + 20, this.y);
+                    this.ctx.fillStyle = "rgb(233,233,233)";
+                    if(nodes[this.id].vis)
+                    {
+                        this.ctx.fillStyle = "rgb(255,0,0)";
+                    }
+                    this.ctx.arc(this.x, this.y, 20, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeStyle = "rgb(63,63,63)";
+                    this.ctx.stroke();
+                    this.ctx.fillStyle = "rgb(0,0,0)";
+                    this.ctx.fillText(this.name, this.x - 6, this.y + 6);
+                    this.ctx.closePath();
+                }
+            )
+        );
+    }
+
+    let init = false;
+    function start() {
+        for(let node in nodes)
+        {
+            nodes[node].dist = -1;
+            nodes[node].vis = false;
+        }
+        nodes[0].vis = true;
+        nodes[0].dist = 0;
+    }
+    function next()
+    {
+       edges[0].vis = true;
+       let minEdge = 0;
+       let minValue = 1000000;
+       for(edge in edges)
+       {
+            if(!nodes[edges[edge].from].vis)
+       }
+    }
+</script>
+</body>
+</html>
