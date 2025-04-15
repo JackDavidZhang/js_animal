@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Graph Animal</title>
+    <meta charset="utf-8">
 </head>
 <body>
 <canvas
@@ -11,7 +12,7 @@
     Not Supported!
 </canvas
 >
-<button onclick="start()">开始</button>
+<button id="start" onclick="start()">开始</button>
 <button onclick="next()">下一步</button>
 <script>
     const nodes = [{name: "A", positions: {x: 100, y: 250}}, {name: "B", positions: {x: 250, y: 150}}, {
@@ -71,15 +72,15 @@
             second_start = new Date();
         }
         if (sum_delay > 16) ctx.fillStyle = "rgb(255,0,0)";
-        ctx.fillText("Frame: " + (frame_counter++).toString(), 0, 16);
-        ctx.fillText(
-            "FPS: " + ((16 / (sum_delay + 16 * 16)) * 1000).toString(),
-            0,
-            32
-        );
-        ctx.fillText("Sum_Delay: " + sum_delay.toString() + "ms", 0, 48);
-        ctx.fillText("Avg_Delay: " + (sum_delay / 16).toString() + "ms", 0, 64);
-        ctx.fillText("Objects: " + objects.length.toString(), 0, 80);
+        //ctx.fillText("Frame: " + (frame_counter++).toString(), 0, 16);
+        //ctx.fillText(
+        //    "FPS: " + ((16 / (sum_delay + 16 * 16)) * 1000).toString(),
+        //    0,
+        //    32
+        //);
+        //ctx.fillText("Sum_Delay: " + sum_delay.toString() + "ms", 0, 48);
+        //ctx.fillText("Avg_Delay: " + (sum_delay / 16).toString() + "ms", 0, 64);
+        //ctx.fillText("Objects: " + objects.length.toString(), 0, 80);
         ctx.fill();
         for (i in objects) {
             objects[i].next();
@@ -145,7 +146,15 @@
                     this.ctx.fillStyle = "rgb(233,233,233)";
                     if(nodes[this.id].vis)
                     {
+                        this.ctx.fillStyle = "rgb(0,0,0)";
+                        this.ctx.fillText(nodes[this.id].dist,this.x+5,this.y+37);
                         this.ctx.fillStyle = "rgb(255,0,0)";
+                    }else{
+                        if(nodes[this.id].temp != 0 && nodes[this.id].temp != undefined){
+                            this.ctx.fillStyle = "rgb(255,0,0)";
+                            this.ctx.fillText(nodes[this.id].temp,this.x+5,this.y+37);
+                            this.ctx.fillStyle = "rgb(233,233,233)";
+                        }
                     }
                     this.ctx.arc(this.x, this.y, 20, 0, 2 * Math.PI);
                     this.ctx.fill();
@@ -169,16 +178,49 @@
         }
         nodes[0].vis = true;
         nodes[0].dist = 0;
+        for(let edge in edges){
+            edges[edge].vis = false;
+        }
+        document.getElementById("start").innerText = "  重置";
+        init = true;
     }
+    let flag = true;
+    let minEdge = 0;
+    let minValue = 1000000;
     function next()
     {
-       edges[0].vis = true;
-       let minEdge = 0;
-       let minValue = 1000000;
-       for(edge in edges)
-       {
-            if(!nodes[edges[edge].from].vis)
-       }
+        if(!init) return;
+        if(flag) {
+            minEdge = 0;
+            minValue = 1000000;
+            for (edge in edges) {
+                if (edges[edge].vis) {
+                    continue;
+                }
+                if (!nodes[edges[edge].from].vis || nodes[edges[edge].to].vis) {
+                    continue;
+                }
+                if(nodes[edges[edge].to].temp==0 || nodes[edges[edge].to].temp==undefined) {
+                    nodes[edges[edge].to].temp = edges[edge].value + nodes[edges[edge].from].dist;
+                }else{
+                    nodes[edges[edge].to].temp = Math.min(nodes[edges[edge].to].temp,edges[edge].value + nodes[edges[edge].from].dist);
+                }
+
+                if (edges[edge].value + nodes[edges[edge].from].dist < minValue) {
+                    minValue = edges[edge].value + nodes[edges[edge].from].dist;
+                    minEdge = edge;
+                    nodes[edges[minEdge].to].temp = minValue;
+                }
+            }
+        }else {
+            if (minEdge !== 0) {
+                edges[minEdge].vis = true;
+                nodes[edges[minEdge].to].vis = true;
+                nodes[edges[minEdge].to].dist = minValue;
+            }
+            for(let node in nodes){nodes[node].temp = 0;}
+        }
+        flag = !flag;
     }
 </script>
 </body>
