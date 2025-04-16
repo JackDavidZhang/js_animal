@@ -109,6 +109,11 @@
                     this.ctx.lineWidth = 2;
                     this.ctx.strokeStyle = "rgb(63,63,63)";
                     if(edges[this.id].vis){
+                        if(edges[this.id].animal <= 1)
+                        {
+                            let animal_k = 1 - (edges[this.id].animal - 1)*(edges[this.id].animal - 1);
+                            this.ctx.strokeStyle = "rgb(" + (63 + 170*animal_k).toString() + "," + (63*(1-animal_k)).toString() + "," + (63*(1-animal_k)).toString() + ")";
+                        }
                         this.ctx.strokeStyle = "rgb(233,0,0)";
                     }
                     this.ctx.lineTo(this.x2, this.y2);
@@ -124,7 +129,28 @@
                     this.ctx.lineTo(end_x - delta_x, end_y + delta_y);
                     this.ctx.stroke();
                     this.ctx.fillStyle = "rgb(0,0,0)";
-                    this.ctx.fillText(this.value.toString(), (this.x1 + this.x2) / 2, (this.y1 + this.y2) / 2);
+                    let label_x = (this.x1+this.x2)/2;
+                    let label_y = (this.y1+this.y2)/2;
+                    if(nodes[edges[this.id].from].positions.x == nodes[edges[this.id].to].positions.x)
+                    {
+                        label_x += 5;
+                        label_y -= 3;
+                    }else if(nodes[edges[this.id].from].positions.y == nodes[edges[this.id].to].positions.y)
+                    {
+                        label_y -= 5;
+                        label_x -= 0;
+                    }else{
+                        let k = (nodes[edges[this.id].from].positions.y - nodes[edges[this.id].to].positions.y)/(nodes[edges[this.id].from].positions.x - nodes[edges[this.id].to].positions.x);
+                        if(k > 0)
+                        {
+                            label_x += 3;
+                            label_y -= 3;
+                        }else{
+                            label_x += 10;
+                            label_y += 10;
+                        }
+                    }
+                    this.ctx.fillText(this.value.toString(), label_x, label_y);
                     this.ctx.closePath();
                 }
             )
@@ -146,9 +172,22 @@
                     this.ctx.fillStyle = "rgb(233,233,233)";
                     if(nodes[this.id].vis)
                     {
-                        this.ctx.fillStyle = "rgb(0,0,0)";
+                        this.ctx.fillStyle = "rgb(0,255,0)";
+if(nodes[this.id].animal <= 1)
+                        {
+                            let animal_k = 1-(nodes[this.id].animal-1)*(nodes[this.id].animal-1);
+                            this.ctx.fillStyle = "rgb(" + (155*(1-animal_k)+100).toString() + "," + (255*(animal_k)).toString() + ",0)";
+                        }else{
+                            this.ctx.fillStyle = "rgb(100,255,0)";}
+                    
                         this.ctx.fillText(nodes[this.id].dist,this.x+5,this.y+37);
-                        this.ctx.fillStyle = "rgb(255,0,0)";
+                        if(nodes[this.id].animal <= 1)
+                        {
+                            let animal_k = 1-(nodes[this.id].animal-1)*(nodes[this.id].animal-1);
+                            this.ctx.fillStyle = "rgb(" + (22*animal_k + 233).toString() + "," + (233*(1-animal_k)).toString() + "," + (233*(1-animal_k)).toString() + ")";
+                            nodes[this.id].animal += 0.01;
+                        }else{
+                            this.ctx.fillStyle = "rgb(255,0,0)";}
                     }else{
                         if(nodes[this.id].temp != 0 && nodes[this.id].temp != undefined){
                             this.ctx.fillStyle = "rgb(255,0,0)";
@@ -175,11 +214,13 @@
         {
             nodes[node].dist = -1;
             nodes[node].vis = false;
+            nodes[node].animal = 0;
         }
         nodes[0].vis = true;
         nodes[0].dist = 0;
         for(let edge in edges){
             edges[edge].vis = false;
+            edges[edge].animal = 0;
         }
         document.getElementById("start").innerText = "  重置";
         init = true;
